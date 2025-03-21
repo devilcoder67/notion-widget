@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>古典语录展示器</title>
+    <style>
+      :root {
+        --paper-color: #f3e9d2;
+        --ink-color: #2a2a2a;
+        --accent-color: #9b1b1b;
+        --shadow-color: rgba(0, 0, 0, 0.2);
+        --transition-time: 0.3s;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Noto Serif SC", "SimSun", serif;
+        background-color: #f5f5f5;
+        color: var(--ink-color);
+        line-height: 1.6;
+      }
+
+      .quote-container {
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px var(--shadow-color);
+        overflow: hidden;
+      }
+
+      /* Header styling */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: var(--paper-color);
+        border-bottom: 1px solid #e0d9c2;
+      }
+
+      .date-display {
+        font-size: 1rem;
+        color: var(--accent-color);
+      }
+
+      .controls button {
+        background: none;
+        border: 1px solid var(--accent-color);
+        color: var(--accent-color);
+        padding: 5px 10px;
+        margin-left: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all var(--transition-time);
+      }
+
+      .controls button:hover {
+        background-color: var(--accent-color);
+        color: var(--paper-color);
+      }
+
+      /* Scroll container styling */
+      .scroll-container {
+        position: relative;
+        height: 450px;
+        background-color: var(--paper-color);
+        overflow: hidden;
+      }
+
+      .scroll-wrapper {
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .quote-scroll {
+        width: 80%;
+        height: 80%;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23F3E9D2" /><path d="M0,0 L100,0 L100,100 L0,100 Z" stroke="%23D4C9A8" stroke-width="2" fill="none" /></svg>');
+        background-size: cover;
+        box-shadow: 0 3px 15px var(--shadow-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        transform-origin: center center;
+        animation: unfurl 1.5s ease-out;
+      }
+
+      @keyframes unfurl {
+        0% {
+          transform: translateY(-20%) scale(0.9, 0.1);
+          opacity: 0.3;
+        }
+        40% {
+          transform: translateY(0) scale(1, 0.1);
+          opacity: 0.6;
+        }
+        100% {
+          transform: translateY(0) scale(1, 1);
+          opacity: 1;
+        }
+      }
+
+      .quote-content {
+        padding: 30px;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 2s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .vertical-text {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+      }
+
+      .quote-text {
+        font-size: 1.8rem;
+        margin: 20px 0;
+        line-height: 1.8;
+        letter-spacing: 2px;
+        animation: inkReveal 2.5s ease-in;
+      }
+
+      @keyframes inkReveal {
+        0% {
+          color: transparent;
+        }
+        30% {
+          color: rgba(42, 42, 42, 0.3);
+        }
+        100% {
+          color: var(--ink-color);
+        }
+      }
+
+      .quote-source {
+        font-size: 1rem;
+        color: var(--accent-color);
+        margin-top: 15px;
+      }
+
+      .source-icon {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 10px;
+      }
+
+      /* Navigation controls */
+      .nav-controls {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 40px;
+      }
+
+      .nav-controls button {
+        background-color: rgba(255, 255, 255, 0.7);
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all var(--transition-time);
+        box-shadow: 0 2px 5px var(--shadow-color);
+      }
+
+      .nav-controls button:hover {
+        background-color: var(--accent-color);
+        color: white;
+      }
+
+      /* Expanded note section */
+      .expanded-note {
+        background-color: white;
+        padding: 20px;
+        border-top: 1px solid #e0d9c2;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .note-content {
+        font-size: 1rem;
+        line-height: 1.8;
+        margin-bottom: 15px;
+      }
+
+      .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .tag {
+        background-color: var(--paper-color);
+        color: var(--accent-color);
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+      }
+
+      .close-note {
+        background-color: var(--paper-color);
+        color: var(--accent-color);
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      /* Search panel */
+      .search-panel {
+        padding: 15px;
+        border-top: 1px solid #e0d9c2;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .filter-options {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .filter-options select {
+        flex: 1;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .search-results {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .search-result-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+      }
+
+      .search-result-item:hover {
+        background-color: var(--paper-color);
+      }
+
+      /* Favorites collection */
+      .favorites-collection {
+        padding: 15px;
+        border-top: 1px solid #e0d9c2;
+      }
+
+      .favorites-list {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .favorite-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+      }
+
+      .favorite-item:hover {
+        background-color: var(--paper-color);
+      }
+
+      /* Offline notice */
+      .offline-notice {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+      }
+
+      .scroll-damaged {
+        background-color: var(--paper-color);
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        transform: rotate(-5deg);
+        color: var(--accent-color);
+        border: 1px dashed var(--accent-color);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* Responsive design */
+      @media (max-width: 768px) {
+        .quote-text {
+          font-size: 1.5rem;
+        }
+
+        .scroll-container {
+          height: 350px;
+        }
+
+        .quote-scroll {
+          width: 90%;
+        }
+
+        .filter-options {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="quote-container">
+      <!-- Header Section -->
+      <div class="header">
+        <div class="date-display"></div>
+        <div class="controls">
+          <button class="toggle-script">简 / 繁</button>
+          <button class="favorite-button">收藏</button>
+          <button class="share-button">分享</button>
+        </div>
+      </div>
+
+      <!-- Main Quote Display -->
+      <div class="scroll-container">
+        <div class="scroll-wrapper">
+          <div class="quote-scroll">
+            <div class="quote-content vertical-text">
+              <div class="source-icon"></div>
+              <div class="quote-text"></div>
+              <div class="quote-source"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="nav-controls">
+          <button class="prev-quote">&lt;</button>
+          <button class="next-quote">&gt;</button>
+        </div>
+      </div>
+
+      <!-- Expanded Note Section -->
+      <div class="expanded-note hidden">
+        <div class="note-content"></div>
+        <div class="tags-container"></div>
+        <button class="close-note">收起</button>
+      </div>
+
+      <!-- Search Panel -->
+      <div class="search-panel">
+        <input type="text" class="search-input" placeholder="搜索语录..." />
+        <div class="filter-options">
+          <select class="source-filter">
+            <option value="">全部典籍</option>
+            <option value="周易">周易</option>
+            <option value="诗经">诗经</option>
+            <option value="道德经">道德经</option>
+            <option value="庄子">庄子</option>
+          </select>
+          <select class="tag-filter">
+            <option value="">全部主题</option>
+            <option value="哲学">哲学</option>
+            <option value="励志">励志</option>
+            <option value="爱情">爱情</option>
+            <option value="处世">处世</option>
+            <option value="政治">政治</option>
+          </select>
+          <select class="length-filter">
+            <option value="">全部长度</option>
+            <option value="short">短句 (≤15字)</option>
+            <option value="medium">中句 (16-30字)</option>
+            <option value="long">长句 (>30字)</option>
+          </select>
+        </div>
+        <div class="search-results"></div>
+      </div>
+
+      <!-- Favorites Collection -->
+      <div class="favorites-collection hidden">
+        <h3>我的收藏</h3>
+        <div class="favorites-list"></div>
+      </div>
+
+      <!-- Offline Notice -->
+      <div class="offline-notice hidden">
+        <div class="scroll-damaged">
+          <p>网络连接已断开，显示缓存内容</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Set up constants and variables
+        const QUOTES_DATA = [
+          // 《诗经》30条
+          {
+            text: "蒹葭苍苍，白露为霜。所谓伊人，在水一方。溯洄从之，道阻且长；溯游从之，宛在水中央。",
+            source: "《诗经·秦风·蒹葭》",
+            notes:
+              '秋景萧瑟中追寻"伊人"，意境朦胧，隐喻对理想或爱情的求而不得，重章叠句强化怅惘。',
+            tags: ["爱情", "文学"],
+          },
+          {
+            text: "昔我往矣，杨柳依依。今我来思，雨雪霏霏。行道迟迟，载渴载饥。我心伤悲，莫知我哀！",
+            source: "《诗经·小雅·采薇》",
+            notes:
+              "以乐景（杨柳）衬哀情（出征），哀景（雨雪）写哀情（归乡），对比手法深化征人思乡之痛。",
+            tags: ["战争", "思乡"],
+          },
+          {
+            text: "投我以木桃，报之以琼瑶。匪报也，永以为好也！",
+            source: "《诗经·卫风·木瓜》",
+            notes:
+              '互赠信物表达情谊，强调情感重于物质回报，体现先秦"礼尚往来"的淳朴民风。',
+            tags: ["友情", "礼仪"],
+          },
+          {
+            text: "知我者谓我心忧，不知我者谓我何求。悠悠苍天，此何人哉？",
+            source: "《诗经·王风·黍离》",
+            notes:
+              '周大夫途经故都见黍离遍野，悲叹亡国之痛。后世以"黍离之悲"寄托家国哀思。',
+            tags: ["家国", "哀思"],
+          },
+          {
+            text: "青青子衿，悠悠我心。纵我不往，子宁不嗣音？青青子佩，悠悠我思。纵我不往，子宁不来？",
+            source: "《诗经·郑风·子衿》",
+            notes:
+              '女子等待恋人的焦灼心理，以"青衿""玉佩"代指对方，婉约含蓄，情感真挚。',
+            tags: ["爱情", "思念"],
+          },
+          {
+            text: "死生契阔，与子成说。执子之手，与子偕老。",
+            source: "《诗经·邶风·击鼓》",
+            notes:
+              "战士与妻子生死相约的誓言，后成为爱情忠贞的经典表述，凸显乱世中的温情。",
+            tags: ["爱情", "誓言"],
+          },
+          {
+            text: "硕鼠硕鼠，无食我黍！三岁贯女，莫我肯顾。逝将去女，适彼乐土。",
+            source: "《诗经·魏风·硕鼠》",
+            notes:
+              '以"硕鼠"喻剥削者，表达对苛政的愤恨与对"乐土"的向往，体现民本思想。',
+            tags: ["政治", "批判"],
+          },
+          {
+            text: "桃之夭夭，灼灼其华。之子于归，宜其室家。",
+            source: "《诗经·周南·桃夭》",
+            notes:
+              "以桃花盛放比喻新娘娇美，祝福婚姻美满。开后世以花喻美人之先河。",
+            tags: ["婚姻", "比喻"],
+          },
+          {
+            text: "彼采萧兮，一日不见，如三秋兮！",
+            source: "《诗经·王风·采葛》",
+            notes:
+              '夸张手法表达思念之切，"一日三秋"成为汉语中表达相思的经典成语。',
+            tags: ["思念", "时间"],
+          },
+          {
+            text: "风雨如晦，鸡鸣不已。既见君子，云胡不喜？",
+            source: "《诗经·郑风·风雨》",
+            notes:
+              '风雨交加中盼见爱人，以恶劣天气反衬重逢的喜悦，体现"哀景写乐"的反衬手法。',
+            tags: ["爱情", "场景"],
+          },
+          {
+            text: "手如柔荑，肤如凝脂，领如蝤蛴，齿如瓠犀，螓首蛾眉，巧笑倩兮，美目盼兮。",
+            source: "《诗经·卫风·硕人》",
+            notes:
+              '连用六喻刻画庄姜之美，是中国文学中最早对女性容貌的工笔描写，奠定"美人赋"的典范。',
+            tags: ["描写", "女性"],
+          },
+          {
+            text: "高山仰止，景行行止。四牡騑騑，六辔如琴。",
+            source: "《诗经·小雅·车辖》",
+            notes:
+              "以高山喻道德崇高，以驾车喻治国有序，表达对贤者的景仰与对礼乐和谐的追求。",
+            tags: ["道德", "治国"],
+          },
+          {
+            text: "鹤鸣于九皋，声闻于野。鱼潜在渊，或在于渚。",
+            source: "《诗经·小雅·鹤鸣》",
+            notes:
+              "以鹤鸣鱼跃隐喻贤者隐居待时，主张君主应广纳人才，含蓄表达政治理想。",
+            tags: ["政治", "隐喻"],
+          },
+          {
+            text: "呦呦鹿鸣，食野之苹。我有嘉宾，鼓瑟吹笙。",
+            source: "《诗经·小雅·鹿鸣》",
+            notes:
+              "周代宴饮宾客的乐歌，以鹿鸣起兴，展现礼乐交融的和谐场景，后世用于科举庆贺。",
+            tags: ["宴饮", "礼乐"],
+          },
+          {
+            text: "普天之下，莫非王土；率土之滨，莫非王臣。",
+            source: "《诗经·小雅·北山》",
+            notes:
+              "强调周王对天下的统治权，后成为中央集权的经典表述，亦被引申为对专制制度的批判。",
+            tags: ["政治", "集权"],
+          },
+          {
+            text: "战战兢兢，如临深渊，如履薄冰。",
+            source: "《诗经·小雅·小旻》",
+            notes:
+              '以深渊薄冰喻处世之艰，刻画谨小慎微的心理，成语"临深履薄"即源于此。',
+            tags: ["处世", "成语"],
+          },
+          {
+            text: "我心匪石，不可转也；我心匪席，不可卷也。",
+            source: "《诗经·邶风·柏舟》",
+            notes:
+              "以石、席为反喻，表达意志坚定不可动摇，展现女性在婚姻中的刚烈抗争。",
+            tags: ["意志", "抗争"],
+          },
+          {
+            text: "七月流火，九月授衣。春日载阳，有鸣仓庚。",
+            source: "《诗经·豳风·七月》",
+            notes:
+              '记录周代农事历法，"七月流火"指火星西沉天气转凉，现常误用于形容炎热。',
+            tags: ["农事", "历法"],
+          },
+          {
+            text: "有匪君子，如切如磋，如琢如磨。",
+            source: "《诗经·卫风·淇奥》",
+            notes:
+              '以治玉喻君子修养，强调德行需反复锤炼，《大学》引此句阐释"修身"之道。',
+            tags: ["修身", "比喻"],
+          },
+          {
+            text: "维天之命，于穆不已。于乎不显，文王之德之纯！",
+            source: "《诗经·周颂·维天之命》",
+            notes: '颂扬周文王德行与天命相合，体现周人以"德"配天的政治哲学。',
+            tags: ["政治", "天命"],
+          },
+          {
+            text: "天生烝民，有物有则。民之秉彝，好是懿德。",
+            source: "《诗经·大雅·烝民》",
+            notes:
+              '孟子引此句论证"性善论"，认为人天生向往美德，为儒家心性论提供经典依据。',
+            tags: ["人性", "儒家"],
+          },
+          {
+            text: "靡不有初，鲜克有终。",
+            source: "《诗经·大雅·荡》",
+            notes:
+              '警示善始易、善终难，告诫执政者慎终如始，成语"有始无终"化用此句。',
+            tags: ["执政", "成语"],
+          },
+          {
+            text: "他山之石，可以攻玉。",
+            source: "《诗经·小雅·鹤鸣》",
+            notes:
+              "借他山之石打磨玉器，喻借鉴外力完善自身，强调开放学习的重要性。",
+            tags: ["学习", "比喻"],
+          },
+          {
+            text: "兄弟阋于墙，外御其务。",
+            source: "《诗经·小雅·常棣》",
+            notes:
+              "兄弟内争但共抗外侮，反映宗法社会家族伦理，后成为团结御敌的经典比喻。",
+            tags: ["家族", "团结"],
+          },
+          {
+            text: "皎皎白驹，在彼空谷。生刍一束，其人如玉。",
+            source: "《诗经·小雅·白驹》",
+            notes:
+              "以白驹喻贤者离去，空谷生刍表挽留之意，抒发对人才流失的惋惜。",
+            tags: ["人才", "隐喻"],
+          },
+          {
+            text: "我姑酌彼金罍，维以不永怀。我姑酌彼兕觥，维以不永伤。",
+            source: "《诗经·周南·卷耳》",
+            notes:
+              '女子借酒消愁，以"金罍""兕觥"等酒器反复咏叹，表达对征夫的深切思念。',
+            tags: ["思念", "饮酒"],
+          },
+          {
+            text: "采采芣苢，薄言采之。采采芣苢，薄言有之。",
+            source: "《诗经·周南·芣苢》",
+            notes:
+              "重章叠句描绘集体采车前草的欢快场景，以简单劳动歌谣展现先秦民间生活气息。",
+            tags: ["劳动", "民歌"],
+          },
+          {
+            text: "匪鹑匪鸢，翰飞戾天；匪鳣匪鲔，潜逃于渊。",
+            source: "《诗经·小雅·四月》",
+            notes:
+              "以猛禽高飞、大鱼深潜，对比百姓在乱世中无处容身的困境，抨击社会不公。",
+            tags: ["社会", "对比"],
+          },
+          {
+            text: "日居月诸，照临下土。乃如之人兮，逝不古处。",
+            source: "《诗经·邶风·日月》",
+            notes:
+              '以日月永恒反衬人心易变，弃妇斥责丈夫负心，开创"日月喻夫"的诗歌传统。',
+            tags: ["婚姻", "比喻"],
+          },
+
+          // 《庄子》35条
+          {
+            text: "夫大块载我以形，劳我以生，佚我以老，息我以死。故善吾生者，乃所以善吾死也。",
+            source: "《庄子·大宗师》",
+            notes:
+              '大地赋予人形体和生命历程，生死皆自然规律。主张坦然接受生死，体现"安命"思想。',
+            tags: ["生死", "自然"],
+          },
+          {
+            text: "堕肢体，黜聪明，离形去知，同于大通，此谓坐忘。",
+            source: "《庄子·大宗师》",
+            notes:
+              "庄子修心法门，通过忘却形体和智巧，达到与道合一的境界，强调精神超脱。",
+            tags: ["修心", "境界"],
+          },
+          {
+            text: "死生，命也，其有夜旦之常，天也。",
+            source: "《庄子·大宗师》",
+            notes:
+              "生死如昼夜交替，是天道循环。庄子以自然观消解对死亡的恐惧，主张豁达。",
+            tags: ["生死", "天道"],
+          },
+          {
+            text: "古之真人，不知说生，不知恶死；其出不訢，其入不距。",
+            source: "《庄子·大宗师》",
+            notes:
+              '真人超脱生死，不因生喜，不因死悲，体现道家"齐生死"的终极境界。',
+            tags: ["生死", "境界"],
+          },
+          {
+            text: "相视而笑，莫逆于心，遂相与为友。",
+            source: "《庄子·大宗师》",
+            notes: "真正的友谊无需言语，心灵相通。庄子推崇自然默契的人际关系。",
+            tags: ["友情", "默契"],
+          },
+          {
+            text: "若夫藏天下于天下而不得所遁，是恒物之大情也。",
+            source: "《庄子·大宗师》",
+            notes:
+              "将天下归还天下，万物自然运行。主张不干预自然规律，无为而治。",
+            tags: ["政治", "无为"],
+          },
+          {
+            text: "至人之用心若镜，不将不迎，应而不藏，故能胜物而不伤。",
+            source: "《庄子·应帝王》",
+            notes:
+              '至人如明镜，不主动迎合或拒绝，客观反映万物，体现道家"无我"境界。',
+            tags: ["境界", "无为"],
+          },
+          {
+            text: "吾生也有涯，而知也无涯。以有涯随无涯，殆已！",
+            source: "《庄子·养生主》",
+            notes:
+              '生命有限，知识无限。庄子反对盲目追求知识，提倡"知止"以养神。',
+            tags: ["知识", "养生"],
+          },
+          {
+            text: "子非鱼，安知鱼之乐？子非我，安知我不知鱼之乐？",
+            source: "《庄子·秋水》",
+            notes:
+              '通过"鱼乐之辩"，庄子质疑人类认知的局限性，强调万物视角的差异性。',
+            tags: ["认知", "辩论"],
+          },
+          {
+            text: "天地与我并生，万物与我为一。",
+            source: "《庄子·齐物论》",
+            notes: '消解主客对立，主张人与天地万物浑然一体，体现"齐物"思想。',
+            tags: ["哲学", "齐物"],
+          },
+          {
+            text: "鹪鹩巢于深林，不过一枝；偃鼠饮河，不过满腹。",
+            source: "《庄子·逍遥游》",
+            notes: "以动物喻人，讽刺贪欲无度，倡导知足寡欲的简朴生活。",
+            tags: ["欲望", "节俭"],
+          },
+          {
+            text: "至人无己，神人无功，圣人无名。",
+            source: "《庄子·逍遥游》",
+            notes:
+              "至人超越自我，神人无功利心，圣人淡泊名利，三者皆达逍遥境界。",
+            tags: ["境界", "逍遥"],
+          },
+          {
+            text: "大知闲闲，小知间间；大言炎炎，小言詹詹。",
+            source: "《庄子·齐物论》",
+            notes:
+              "大智慧从容广博，小聪明琐碎计较；大道至简，小辩纷纭。批判世俗争辩。",
+            tags: ["智慧", "批判"],
+          },
+          {
+            text: "井蛙不可以语于海者，拘于虚也；夏虫不可以语于冰者，笃于时也。",
+            source: "《庄子·秋水》",
+            notes:
+              "井蛙、夏虫受限于时空，暗讽人类认知的狭隘，提倡开放包容的视野。",
+            tags: ["认知", "讽刺"],
+          },
+          {
+            text: "凫胫虽短，续之则忧；鹤胫虽长，断之则悲。",
+            source: "《庄子·骈拇》",
+            notes: "万物各有自然本性，强加改变必生痛苦，主张尊重差异。",
+            tags: ["自然", "差异"],
+          },
+          {
+            text: "人生天地之间，若白驹过隙，忽然而已。",
+            source: "《庄子·知北游》",
+            notes: "生命短暂如白马跃过缝隙，强调珍惜当下，超脱世俗执着。",
+            tags: ["生命", "时间"],
+          },
+          {
+            text: "君子之交淡若水，小人之交甘若醴。",
+            source: "《庄子·山木》",
+            notes: "以水喻君子之交的纯净持久，以甜酒喻小人之交的虚伪短暂。",
+            tags: ["友情", "对比"],
+          },
+          {
+            text: "哀莫大于心死，而人死亦次之。",
+            source: "《庄子·田子方》",
+            notes: "心灵麻木比肉体死亡更可悲，呼吁保持精神自由与觉醒。",
+            tags: ["精神", "觉醒"],
+          },
+          {
+            text: "朴素而天下莫能与之争美。",
+            source: "《庄子·天道》",
+            notes: "自然质朴是美的最高境界，反对矫饰造作，回归本真。",
+            tags: ["美学", "自然"],
+          },
+          {
+            text: "吾以天地为棺椁，以日月为连璧，星辰为珠玑，万物为赍送。",
+            source: "《庄子·列御寇》",
+            notes: "庄子临终前拒绝厚葬，以天地为归宿，体现豁达生死观。",
+            tags: ["生死", "豁达"],
+          },
+          {
+            text: "巧者劳而智者忧，无能者无所求，饱食而遨游，泛若不系之舟。",
+            source: "《庄子·列御寇》",
+            notes: '巧智之人多负累，无为者反得逍遥，倡导"无用之用"。',
+            tags: ["无为", "逍遥"],
+          },
+          {
+            text: "螳螂捕蝉，黄雀在后。",
+            source: "《庄子·山木》",
+            notes: "警示目光短浅者只顾眼前利益，却忽视背后危机，蕴含辩证思维。",
+            tags: ["警示", "辩证"],
+          },
+          {
+            text: "浮游不知所求，猖狂不知所往。",
+            source: "《庄子·在宥》",
+            notes: "描述得道者如浮游般无所执求，自由无拘，体现道家超然境界。",
+            tags: ["境界", "自由"],
+          },
+          {
+            text: "形固可使如槁木，而心固可使如死灰乎？",
+            source: "《庄子·齐物论》",
+            notes: '通过"形如槁木，心如死灰"形容摒除杂念、回归虚静的精神状态。',
+            tags: ["修心", "虚静"],
+          },
+          {
+            text: "今子有大树，患其无用，何不树之于无何有之乡，广莫之野？",
+            source: "《庄子·逍遥游》",
+            notes: "无用之树可逍遥生长于旷野，暗喻摆脱功利束缚，方得自在。",
+            tags: ["无用", "逍遥"],
+          },
+          {
+            text: "彼亦一是非，此亦一是非。",
+            source: "《庄子·齐物论》",
+            notes: "万物的是非标准因立场而异，主张超越对立，以道观之。",
+            tags: ["是非", "相对"],
+          },
+          {
+            text: "知其不可奈何而安之若命，德之至也。",
+            source: "《庄子·人间世》",
+            notes: '面对无法改变的困境，坦然接受视为"安命"，是修养的至高境界。',
+            tags: ["命运", "修养"],
+          },
+          {
+            text: "狗不以善吠为良，人不以善言为贤。",
+            source: "《庄子·徐无鬼》",
+            notes: "批判以言辞取巧的伪善者，真正的贤者重在行动而非空谈。",
+            tags: ["批判", "行动"],
+          },
+          {
+            text: "泽雉十步一啄，百步一饮，不蕲畜乎樊中。",
+            source: "《庄子·养生主》",
+            notes: "野鸡宁可辛苦觅食也不愿被圈养，象征对自由的珍视胜过安逸。",
+            tags: ["自由", "自然"],
+          },
+          {
+            text: "木与木相摩则然，金与火相守则流。",
+            source: "《庄子·外物》",
+            notes: "物性相克则生变，暗喻人际关系中冲突的必然性，需以柔克刚。",
+            tags: ["矛盾", "辩证"],
+          },
+          {
+            text: "圣人不死，大盗不止。",
+            source: "《庄子·胠箧》",
+            notes:
+              "尖锐批判儒家推崇的圣人标准反而成为大盗的借口，主张绝圣弃智。",
+            tags: ["批判", "政治"],
+          },
+          {
+            text: "直木先伐，甘井先竭。",
+            source: "《庄子·山木》",
+            notes: "锋芒毕露者易遭灾祸，提倡韬光养晦以保全自身。",
+            tags: ["处世", "保全"],
+          },
+          {
+            text: "吾安得夫忘言之人而与之言哉！",
+            source: "《庄子·外物》",
+            notes: "庄子感叹知音难觅，真正的交流超越语言，需心领神会。",
+            tags: ["交流", "境界"],
+          },
+          {
+            text: "且夫水之积也不厚，则其负大舟也无力。",
+            source: "《庄子·逍遥游》",
+            notes: "水浅难载大船，暗喻人需积累深厚修养方能成就大事。",
+            tags: ["积累", "修养"],
+          },
+
+          // 《周易》15条
+          {
+            text: "穷则变，变则通，通则久。",
+            source: "《周易·系辞下》",
+            notes:
+              "事物至极必变，变通可持久。体现中国古代辩证法，常用于改革与处世智慧。",
+            tags: ["辩证", "改革"],
+          },
+          {
+            text: "二人同心，其利断金；同心之言，其臭如兰。",
+            source: "《周易·系辞上》",
+            notes:
+              '以"断金"喻合作之力，"兰香"喻言语和谐，强调志同道合的重要性。',
+            tags: ["合作", "和谐"],
+          },
+          {
+            text: "积善之家，必有余庆；积不善之家，必有余殃。",
+            source: "《周易·文言传》",
+            notes: "善恶因果论，劝人修身齐家，为儒家伦理观提供宇宙论依据。",
+            tags: ["伦理", "因果"],
+          },
+          {
+            text: "见龙在田，利见大人；飞龙在天，利见大人。",
+            source: "《周易·乾卦》",
+            notes:
+              '龙从潜隐到腾飞，喻人生阶段需把握时机，配合贤者（"大人"）共成大事。',
+            tags: ["时机", "人生"],
+          },
+          {
+            text: "亢龙有悔，盈不可久也。",
+            source: "《周易·乾卦》",
+            notes: "物极必反，居高位者需戒骄戒躁，避免盛极而衰，体现中庸之道。",
+            tags: ["警示", "中庸"],
+          },
+          {
+            text: "云从龙，风从虎，圣人作而万物睹。",
+            source: "《周易·乾卦》",
+            notes:
+              "以云龙风虎喻同类相感，圣人出世则万物显明，强调领袖与时代的互动关系。",
+            tags: ["领袖", "感应"],
+          },
+          {
+            text: "履霜，坚冰至。",
+            source: "《周易·坤卦》",
+            notes:
+              '踏霜预示寒冬将至，警示见微知著、防患未然，成语"履霜之戒"源于此。',
+            tags: ["警示", "成语"],
+          },
+          {
+            text: "无平不陂，无往不复，艰贞无咎。",
+            source: "《周易·泰卦》",
+            notes:
+              "平坦中暗藏倾斜，去者必将复返，艰守正道可免灾祸，揭示事物循环规律。",
+            tags: ["循环", "坚守"],
+          },
+          {
+            text: "天地不交，否；君子以俭德辟难，不可荣以禄。",
+            source: "《周易·否卦》",
+            notes:
+              '天地闭塞时，君子应节俭修德避祸，不可贪恋禄位，体现道家"退守"智慧。',
+            tags: ["处世", "退守"],
+          },
+          {
+            text: "谦谦君子，卑以自牧也。",
+            source: "《周易·谦卦》",
+            notes:
+              '谦卦推崇低调自守的品德，以"卑"治己，以"谦"待人，为儒家谦德之源。',
+            tags: ["品德", "谦逊"],
+          },
+          {
+            text: "雷出地奋，豫；先王以作乐崇德，殷荐之上帝。",
+            source: "《周易·豫卦》",
+            notes:
+              "雷动地奋象征欢愉，先王制礼乐敬天祭祖，将自然现象与礼乐文明相结合。",
+            tags: ["礼乐", "自然"],
+          },
+          {
+            text: "日中则昃，月盈则食，天地盈虚，与时消息。",
+            source: "《周易·丰卦》",
+            notes:
+              '日月盈亏喻盛衰无常，主张顺应天道、把握时机，蕴含"持盈保泰"的智慧。',
+            tags: ["天道", "时机"],
+          },
+          {
+            text: "君子以思不出其位。",
+            source: "《周易·艮卦》",
+            notes:
+              '强调安守本分、不越界限，与孔子"不在其位，不谋其政"思想相通。',
+            tags: ["本分", "界限"],
+          },
+          {
+            text: "一阴一阳之谓道，继之者善也，成之者性也。",
+            source: "《周易·系辞上》",
+            notes:
+              "阴阳交替构成宇宙根本规律，承续天道为善，成就人性为德，奠定儒家宇宙观。",
+            tags: ["阴阳", "宇宙观"],
+          },
+
+          // 《道德经》10条
+          {
+            text: "道可道，非常道；名可名，非常名。",
+            source: "《道德经·第一章》",
+            notes: '开篇点明"道"超越言语概念，需直觉体悟，确立道家玄学基调。',
+            tags: ["哲学", "形而上学"],
+          },
+          {
+            text: "大音希声，大象无形。",
+            source: "《道德经·第四十一章》",
+            notes: '至高之声无音响，至大之象无形状，揭示"大道至简"的境界。',
+            tags: ["美学", "哲学"],
+          },
+          {
+            text: "祸兮福之所倚，福兮祸之所伏。",
+            source: "《道德经·第五十八章》",
+            notes: "福祸互为因果，转化无常，告诫世人居安思危、遇逆泰然。",
+            tags: ["辩证", "警示"],
+          },
+          {
+            text: "合抱之木，生于毫末；九层之台，起于累土；千里之行，始于足下。",
+            source: "《道德经·第六十四章》",
+            notes:
+              '强调积累的重要性，微小开端终成宏大事业，为"循序渐进"提供哲学依据。',
+            tags: ["积累", "实践"],
+          },
+          {
+            text: "治大国若烹小鲜。",
+            source: "《道德经·第六十章》",
+            notes:
+              "治国如煎小鱼，忌频繁翻动，主张清静无为、减少干预，影响黄老治国术。",
+            tags: ["政治", "无为"],
+          },
+          {
+            text: "天下莫柔弱于水，而攻坚强者莫之能胜。",
+            source: "《道德经·第七十八章》",
+            notes: '以水喻"柔弱胜刚强"，揭示道家"守柔"策略的深刻辩证性。',
+            tags: ["辩证", "策略"],
+          },
+          {
+            text: "知人者智，自知者明。胜人者有力，自胜者强。",
+            source: "《道德经·第三十三章》",
+            notes:
+              "认知他人为智，认知自我为明；超越他人凭力，超越自我方为强者。",
+            tags: ["认知", "修养"],
+          },
+          {
+            text: "大方无隅，大器晚成，大音希声，大象无形。",
+            source: "《道德经·第四十一章》",
+            notes:
+              "真正宏大的事物往往超越感官界限，否定形式拘泥，追求本质境界。",
+            tags: ["哲学", "境界"],
+          },
+          {
+            text: "人法地，地法天，天法道，道法自然。",
+            source: "《道德经·第二十五章》",
+            notes: '构建"人→地→天→道→自然"的宇宙层级，终极法则归于自然无为。',
+            tags: ["宇宙观", "自然"],
+          },
+        ];
+
+        // Source icons as SVG data URIs
+        const SOURCE_ICONS = {
+          周易: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%232A2A2A" stroke-width="2"/><path d="M25,50 L75,50 M50,25 L50,75" stroke="%232A2A2A" stroke-width="2"/><path d="M35,35 L65,35 M35,65 L65,65" stroke="%232A2A2A" stroke-width="2"/></svg>',
+          诗经: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M30,20 L70,20 L70,80 L30,80 Z" fill="none" stroke="%232A2A2A" stroke-width="2"/><path d="M40,30 L60,30 M40,40 L60,40 M40,50 L60,50 M40,60 L50,60" stroke="%232A2A2A" stroke-width="2"/></svg>',
+          道德经:
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="%232A2A2A" stroke-width="2"/><path d="M50,10 C70,30 70,70 50,90 C30,70 30,30 50,10" fill="none" stroke="%232A2A2A" stroke-width="2"/></svg>',
+          庄子: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M30,30 C50,20 70,40 70,60 C70,80 50,90 30,70 C10,50 30,30 50,40 C70,50 70,70 50,80" fill="none" stroke="%232A2A2A" stroke-width="2"/></svg>',
+        };
+
+        // DOM Elements
+        const dateDisplay = document.querySelector(".date-display");
+        const quoteText = document.querySelector(".quote-text");
+        const quoteSource = document.querySelector(".quote-source");
+        const sourceIcon = document.querySelector(".source-icon");
+        const prevButton = document.querySelector(".prev-quote");
+        const nextButton = document.querySelector(".next-quote");
+        const expandedNote = document.querySelector(".expanded-note");
+        const noteContent = document.querySelector(".note-content");
+        const tagsContainer = document.querySelector(".tags-container");
+        const closeNoteButton = document.querySelector(".close-note");
+        const favoriteButton = document.querySelector(".favorite-button");
+        const shareButton = document.querySelector(".share-button");
+        const toggleScriptButton = document.querySelector(".toggle-script");
+        const searchInput = document.querySelector(".search-input");
+        const sourceFilter = document.querySelector(".source-filter");
+        const tagFilter = document.querySelector(".tag-filter");
+        const lengthFilter = document.querySelector(".length-filter");
+        const searchResults = document.querySelector(".search-results");
+        const favoritesCollection = document.querySelector(
+          ".favorites-collection"
+        );
+        const favoritesList = document.querySelector(".favorites-list");
+        const offlineNotice = document.querySelector(".offline-notice");
+
+        // App state
+        let currentQuoteIndex = 0;
+        let currentQuotes = [...QUOTES_DATA]; // Copy for manipulation
+        let favorites = [];
+        let isSimplified = true;
+        let viewingHistory = false;
+        let historyIndex = 0;
+        let viewHistory = [];
+
+        // Initialize the app
+        function init() {
+          loadState();
+          updateQuoteDisplay();
+          setupEventListeners();
+          checkConnectivity();
+          updateDateDisplay();
+        }
+
+        // Load saved state from localStorage
+        function loadState() {
+          try {
+            const savedState = localStorage.getItem("classicalQuotesState");
+            if (savedState) {
+              const state = JSON.parse(savedState);
+
+              // Load favorites
+              favorites = state.favorites || [];
+
+              // Load current quote index based on date
+              const today = new Date().toISOString().split("T")[0];
+              const lastDate = state.lastDate || "";
+
+              if (today === lastDate) {
+                currentQuoteIndex = state.lastIndex || 0;
+              } else {
+                // New day, advance to next quote
+                currentQuoteIndex =
+                  (state.lastIndex + 1) % currentQuotes.length;
+
+                // Check if we need to reshuffle (every 90 days)
+                const lastShuffleDate = new Date(state.lastShuffleDate || 0);
+                const daysSinceLastShuffle = Math.floor(
+                  (new Date() - lastShuffleDate) / (1000 * 60 * 60 * 24)
+                );
+
+                if (daysSinceLastShuffle >= 90) {
+                  shuffleQuotes();
+                  localStorage.setItem(
+                    "classicalQuotesState",
+                    JSON.stringify({
+                      ...state,
+                      lastShuffleDate: new Date().toISOString(),
+                    })
+                  );
+                }
+              }
+
+              // Update script preference
+              isSimplified =
+                state.isSimplified !== undefined ? state.isSimplified : true;
+
+              // Save current state
+              saveState();
+            } else {
+              // First time use, shuffle quotes
+              shuffleQuotes();
+              saveState();
+            }
+          } catch (error) {
+            console.error("Error loading state:", error);
+            // Use default values
+          }
+        }
+
+        // Save current state to localStorage
+        function saveState() {
+          try {
+            const state = {
+              favorites: favorites,
+              lastIndex: currentQuoteIndex,
+              lastDate: new Date().toISOString().split("T")[0],
+              lastShuffleDate: localStorage.getItem("classicalQuotesState")
+                ? JSON.parse(localStorage.getItem("classicalQuotesState"))
+                    .lastShuffleDate
+                : new Date().toISOString(),
+              isSimplified: isSimplified,
+            };
+            localStorage.setItem("classicalQuotesState", JSON.stringify(state));
+          } catch (error) {
+            console.error("Error saving state:", error);
+          }
+        }
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleQuotes() {
+          const array = [...QUOTES_DATA]; // Create a copy
+          for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+          currentQuotes = array;
+        }
+
+        // Update the quote display
+        function updateQuoteDisplay() {
+          const quote = currentQuotes[currentQuoteIndex];
+
+          // Add current quote to view history
+          if (!viewingHistory) {
+            viewHistory.push(currentQuoteIndex);
+            historyIndex = viewHistory.length - 1;
+          }
+
+          // Update text and source
+          quoteText.textContent = quote.text;
+          quoteSource.textContent = quote.source;
+
+          // Update source icon
+          const sourceType = getSourceType(quote.source);
+          sourceIcon.style.backgroundImage = `url('${SOURCE_ICONS[sourceType]}')`;
+
+          // Update note content
+          noteContent.textContent = quote.notes;
+
+          // Update tags
+          tagsContainer.innerHTML = "";
+          quote.tags.forEach((tag) => {
+            const tagElement = document.createElement("span");
+            tagElement.className = "tag";
+            tagElement.textContent = tag;
+            tagsContainer.appendChild(tagElement);
+          });
+
+          // Update favorite button state
+          const isFavorite = favorites.some((fav) => fav.text === quote.text);
+          favoriteButton.textContent = isFavorite ? "已收藏" : "收藏";
+          favoriteButton.style.backgroundColor = isFavorite
+            ? getComputedStyle(document.documentElement).getPropertyValue(
+                "--accent-color"
+              )
+            : "";
+          favoriteButton.style.color = isFavorite ? "white" : "";
+
+          // Apply text style (simplified/traditional)
+          if (!isSimplified) {
+            convertToTraditional();
+          }
+
+          // Close expanded note if open
+          expandedNote.classList.add("hidden");
+
+          // Trigger animations
+          const quoteScroll = document.querySelector(".quote-scroll");
+          quoteScroll.style.animation = "none";
+          quoteScroll.offsetHeight; // Trigger reflow
+          quoteScroll.style.animation = "unfurl 1.5s ease-out";
+
+          quoteText.style.animation = "none";
+          quoteText.offsetHeight; // Trigger reflow
+          quoteText.style.animation = "inkReveal 2.5s ease-in";
+
+          // Save state
+          saveState();
+        }
+
+        // Get source type from source string
+        function getSourceType(source) {
+          if (source.includes("周易")) return "周易";
+          if (source.includes("诗经")) return "诗经";
+          if (source.includes("道德经")) return "道德经";
+          if (source.includes("庄子")) return "庄子";
+          return "周易"; // Default
+        }
+
+        // Update date display
+        function updateDateDisplay() {
+          const now = new Date();
+          const options = {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "long",
+          };
+          dateDisplay.textContent = now.toLocaleDateString("zh-CN", options);
+        }
+
+        // Convert text to traditional Chinese (simplified implementation)
+        function convertToTraditional() {
+          // This is a simplified conversion - in a real app, you'd want to use a proper conversion library
+          const simplifiedToTraditional = {
+            国: "國",
+            东: "東",
+            关: "關",
+            为: "為",
+            义: "義",
+            点: "點",
+            说: "說",
+            对: "對",
+            历: "歷",
+            观: "觀",
+            书: "書",
+            乐: "樂",
+            强: "強",
+            飞: "飛",
+            无: "無",
+            发: "發",
+            难: "難",
+            龙: "龍",
+            气: "氣",
+            与: "與",
+            // Add more mappings as needed
+            断: "斷", // "其利断金"
+            龟: "龜", // "关关雎鸠"
+            达: "達", // "圣人作而万物睹"
+            复: "復", // "无往不复"
+            尔: "爾", // "率土之滨"
+            渊: "淵", // "如临深渊"
+            朴: "樸", // "朴素而天下"
+            几: "幾", // "故几于道"
+            谷: "穀", // "皎皎白驹，在彼空谷"（此处应作"谷"非"穀"，但繁体仍为"谷"）
+            郁: "鬱", // "呦呦鹿鸣"
+            尔: "爾", // "率土之滨"
+            尽: "盡", // "知无不言"
+            称: "稱", // "称物平施"
+            秽: "穢", // "不蕲畜乎樊中"
+            毁: "毀", // "直木先伐"
+            饥: "饑", // "载渴载饥"
+            尘: "塵", // "和光同尘"
+            弃: "棄", // "绝圣弃智"
+            争: "爭", // "水善利万物而不争"
+            墙: "牆", // "兄弟阋于墙"
+            忧: "憂", // "知我者谓我心忧"
+            惧: "懼", // "临深履薄"
+            怜: "憐", // "莫我肯顾"
+            态: "態", // "应而不藏"
+            怀: "懷", // "维以不永怀"
+            惧: "懼", // "战战兢兢"
+            恳: "懇", // "三岁贯女"
+            愤: "憤", // "硕鼠硕鼠"
+            悬: "懸", // "如临深渊"
+            跃: "躍", // "鱼潜在渊，或在于渚"
+            踪: "蹤", // "圣人作而万物睹"
+            踪: "蹤", // "处众人之所恶"
+            踪: "蹤", // 重复项需去重
+          };
+
+          let traditionalText = quoteText.textContent;
+          for (const [simplified, traditional] of Object.entries(
+            simplifiedToTraditional
+          )) {
+            traditionalText = traditionalText.replace(
+              new RegExp(simplified, "g"),
+              traditional
+            );
+          }
+          quoteText.textContent = traditionalText;
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+          // Navigation buttons
+          prevButton.addEventListener("click", () => {
+            if (viewingHistory && historyIndex > 0) {
+              historyIndex--;
+              currentQuoteIndex = viewHistory[historyIndex];
+              viewingHistory = true;
+            } else {
+              currentQuoteIndex =
+                (currentQuoteIndex - 1 + currentQuotes.length) %
+                currentQuotes.length;
+              viewingHistory = false;
+            }
+            updateQuoteDisplay();
+          });
+
+          nextButton.addEventListener("click", () => {
+            if (viewingHistory && historyIndex < viewHistory.length - 1) {
+              historyIndex++;
+              currentQuoteIndex = viewHistory[historyIndex];
+              viewingHistory = true;
+            } else {
+              currentQuoteIndex =
+                (currentQuoteIndex + 1) % currentQuotes.length;
+              viewingHistory = false;
+            }
+            updateQuoteDisplay();
+          });
+
+          // Quote click to expand note
+          quoteText.addEventListener("click", () => {
+            expandedNote.classList.toggle("hidden");
+          });
+
+          // Close note button
+          closeNoteButton.addEventListener("click", () => {
+            expandedNote.classList.add("hidden");
+          });
+
+          // Favorite button
+          favoriteButton.addEventListener("click", () => {
+            const currentQuote = currentQuotes[currentQuoteIndex];
+            const isFavorite = favorites.some(
+              (fav) => fav.text === currentQuote.text
+            );
+
+            if (isFavorite) {
+              favorites = favorites.filter(
+                (fav) => fav.text !== currentQuote.text
+              );
+            } else {
+              favorites.push(currentQuote);
+            }
+
+            updateQuoteDisplay();
+            updateFavoritesList();
+            saveState();
+          });
+
+          // Share button
+          shareButton.addEventListener("click", () => {
+            const currentQuote = currentQuotes[currentQuoteIndex];
+            const shareText = `${currentQuote.text}\n${currentQuote.source}`;
+
+            // Use Web Share API if available
+            if (navigator.share) {
+              navigator.share({
+                title: "古典语录",
+                text: shareText,
+              });
+            } else {
+              // Fallback to clipboard
+              navigator.clipboard
+                .writeText(shareText)
+                .then(() => alert("语录已复制到剪贴板"))
+                .catch((err) => console.error("复制失败:", err));
+            }
+          });
+
+          // Toggle script (simplified/traditional)
+          toggleScriptButton.addEventListener("click", () => {
+            isSimplified = !isSimplified;
+            updateQuoteDisplay();
+            saveState();
+          });
+
+          // Search and filters
+          searchInput.addEventListener("input", performSearch);
+          sourceFilter.addEventListener("change", performSearch);
+          tagFilter.addEventListener("change", performSearch);
+          lengthFilter.addEventListener("change", performSearch);
+
+          // Touch events for swiping
+          let touchStartX = 0;
+          let touchEndX = 0;
+
+          document
+            .querySelector(".quote-scroll")
+            .addEventListener("touchstart", (e) => {
+              touchStartX = e.changedTouches[0].screenX;
+            });
+
+          document
+            .querySelector(".quote-scroll")
+            .addEventListener("touchend", (e) => {
+              touchEndX = e.changedTouches[0].screenX;
+              handleSwipe();
+            });
+
+          function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) {
+              // Swipe left - next quote
+              nextButton.click();
+            } else if (touchEndX > touchStartX + swipeThreshold) {
+              // Swipe right - previous quote
+              prevButton.click();
+            }
+          }
+        }
+
+        // Perform search based on input and filters
+        function performSearch() {
+          const searchTerm = searchInput.value.toLowerCase();
+          const sourceValue = sourceFilter.value;
+          const tagValue = tagFilter.value;
+          const lengthValue = lengthFilter.value;
+
+          searchResults.innerHTML = "";
+
+          const filteredQuotes = QUOTES_DATA.filter((quote) => {
+            // Text search
+            if (
+              searchTerm &&
+              !quote.text.toLowerCase().includes(searchTerm) &&
+              !quote.source.toLowerCase().includes(searchTerm)
+            ) {
+              return false;
+            }
+
+            // Source filter
+            if (sourceValue && !quote.source.includes(sourceValue)) {
+              return false;
+            }
+
+            // Tag filter
+            if (tagValue && !quote.tags.includes(tagValue)) {
+              return false;
+            }
+
+            // Length filter
+            const length = quote.text.length;
+            if (lengthValue === "short" && length > 15) return false;
+            if (lengthValue === "medium" && (length <= 15 || length > 30))
+              return false;
+            if (lengthValue === "long" && length <= 30) return false;
+
+            return true;
+          });
+
+          if (filteredQuotes.length === 0) {
+            searchResults.innerHTML = "<p>没有找到匹配的语录</p>";
+            return;
+          }
+
+          filteredQuotes.forEach((quote) => {
+            const resultItem = document.createElement("div");
+            resultItem.className = "search-result-item";
+            resultItem.textContent = `${quote.text.substring(0, 20)}${
+              quote.text.length > 20 ? "..." : ""
+            } - ${quote.source}`;
+
+            resultItem.addEventListener("click", () => {
+              // Find the index in the current quotes array
+              const index = currentQuotes.findIndex(
+                (q) => q.text === quote.text
+              );
+              if (index !== -1) {
+                currentQuoteIndex = index;
+                viewingHistory = false;
+                updateQuoteDisplay();
+                // Clear search
+                searchInput.value = "";
+                searchResults.innerHTML = "";
+              }
+            });
+
+            searchResults.appendChild(resultItem);
+          });
+        }
+
+        // Update favorites list
+        function updateFavoritesList() {
+          favoritesList.innerHTML = "";
+
+          if (favorites.length === 0) {
+            favoritesList.innerHTML = "<p>暂无收藏</p>";
+            return;
+          }
+
+          favorites.forEach((quote) => {
+            const favoriteItem = document.createElement("div");
+            favoriteItem.className = "favorite-item";
+            favoriteItem.textContent = `${quote.text.substring(0, 20)}${
+              quote.text.length > 20 ? "..." : ""
+            } - ${quote.source}`;
+
+            favoriteItem.addEventListener("click", () => {
+              // Find the index in the current quotes array
+              const index = currentQuotes.findIndex(
+                (q) => q.text === quote.text
+              );
+              if (index !== -1) {
+                currentQuoteIndex = index;
+                viewingHistory = false;
+                updateQuoteDisplay();
+                favoritesCollection.classList.add("hidden");
+              }
+            });
+
+            favoritesList.appendChild(favoriteItem);
+          });
+        }
+
+        // Check internet connectivity
+        function checkConnectivity() {
+          if (!navigator.onLine) {
+            offlineNotice.classList.remove("hidden");
+          } else {
+            offlineNotice.classList.add("hidden");
+          }
+
+          window.addEventListener("online", () => {
+            offlineNotice.classList.add("hidden");
+          });
+
+          window.addEventListener("offline", () => {
+            offlineNotice.classList.remove("hidden");
+          });
+        }
+
+        // Initialize the app
+        init();
+      });
+    </script>
+  </body>
+</html>
